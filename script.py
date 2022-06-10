@@ -23,8 +23,6 @@ model_dir = "./models/" + model_name + "/saved_model"
 detection_model = tf.saved_model.load(str(model_dir))
 detection_model = detection_model.signatures['serving_default']
 
-filename = "test03.mp4"
-
 # Setup initial positions in the line
 heightF = 0
 widthF = 0
@@ -40,38 +38,28 @@ def estimate_collide(output_dict, height, width, image_np):
     global crash_count_frames, accident, line_left, line_right, line_pos
     cv2.line(image_np, (int(line_left * width + 1), int(line_pos * height)),
              (int(line_right * widthF - 1), int(line_pos * heightF)), (255, 127, 0), 4)
-    vehicle_crash = 0
-    max_curr_obj_area = 0
-    center_x = center_y = 0
     details = [0, 0, 0, 0]
     for ind, scr in enumerate(output_dict['detection_classes']):
         if scr == 2 or scr == 3 or scr == 4 or scr == 6 or scr == 8:
             ymin, xmin, ymax, xmax = output_dict['detection_boxes'][ind]
             score = output_dict['detection_scores'][ind]
             if score > 0.5:
-                obj_area = int((xmax - xmin) * width * (ymax - ymin) * height)
-                if obj_area > max_curr_obj_area:
-                    max_curr_obj_area = obj_area
                 details = [ymin, xmin, ymax, xmax]
 
-    center_x, center_y = (details[1] + details[3]) / 2, (details[0] + details[2]) / 2
-    if max_curr_obj_area > 70000:
-        if (details[2] > line_pos) and ((details[1] < line_left and details[3] > line_left) or (
-            details[1] < line_left and details[3] > line_right) or (
-                                            details[1] < line_right and details[3] > line_right) or (
-                                            details[1] > line_left and details[3] < line_right)):
-            # if (center_x < 0.2 and details[2] > 0.9) or (0.2 <= center_x <= 0.8) or (center_x > 0.8 and details[2] > 0.9):
-            vehicle_crash = 1
-            crash_count_frames = 15
-        else:
-            vehicle_crash = 0
+    if (details[2] > line_pos) and ((details[1] < line_left and details[3] > line_left) or (
+        details[1] < line_left and details[3] > line_right) or (
+                                        details[1] < line_right and details[3] > line_right) or (
+                                        details[1] > line_left and details[3] < line_right)):
+        vehicle_crash = 1
+        crash_count_frames = 15
+    else:
+        vehicle_crash = 0
 
     if vehicle_crash == 0:
         crash_count_frames = crash_count_frames - 1
 
     if crash_count_frames > 0:
-        if max_curr_obj_area <= 100000:
-            cv2.putText(image_np, "Slow down vehicle", (100, 100), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
+        cv2.putText(image_np, "Slow down vehicle", (100, 100), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
 
 
 def run_inference_for_single_image(model, image):
@@ -115,7 +103,7 @@ def show_inference(model, image_path):
     return image_np
 
 
-cap = cv2.VideoCapture('./videos/' + filename)
+cap = cv2.VideoCapture('./videos/test03.mp4')
 time.sleep(2.0)
 
 cap.set(1, 0)
@@ -137,17 +125,17 @@ while True:
     key = cv2.waitKey(1)
     if key == 27:
         break
-    elif key == 119 and line_pos > 0:  # up
+    elif key == 119 and line_pos > 0:  # up (w)
         line_pos -= 0.05
-    elif key == 115 and line_pos < heightF:  # down
+    elif key == 115 and line_pos < heightF:  # down (s)
         line_pos += 0.05
-    elif key == 97:  # left
+    elif key == 97:  # left (a)
         line_left -= 0.05
-    elif key == 65:  # left reverse
+    elif key == 122:  # left reverse (z)
         line_left += 0.05
-    elif key == 100:  # right
+    elif key == 100:  # right (d)
         line_right += 0.05
-    elif key == 68:  # right reverse
+    elif key == 99:  # right reverse (c)
         line_right -= 0.05
 
 fps.stop()
